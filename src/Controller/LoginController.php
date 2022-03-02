@@ -11,20 +11,10 @@ use Symfony\Component\Routing\Annotation\Route;
 class LoginController extends AbstractController
 {
    /**
-    * @Route("/login", methods={"POST", "OPTIONS"})
+    * @Route("/login", methods={"POST"})
     */
    public function login(Request $request): Response
    {
-      header('Access-Control-Allow-Origin: *');
-      header('Access-Control-Request-Method: POST');
-      header('Access-Control-Allow-Headers: authorization, content-type');
-
-      // early escape for pre-flight CORS check
-      if($request->isMethod('OPTIONS')) {
-         return new Response();
-      }
-
-
       // todo extract all this to a JWT class
       $headers = getallheaders();
       $jwt_header = $headers['Authorization'] ?? null;

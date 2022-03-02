@@ -10,21 +10,36 @@ use Symfony\Component\Routing\Annotation\Route;
 
 class ArticleController extends AbstractController
 {
+   private static array $articles = [
+      [
+         'id'        => 1,
+         'title'     => 'Test article',
+         'url'       => '/articles/test-article',
+         'published' => false,
+         'deleted'   => false
+      ],
+      [
+         'id'        => 2,
+         'title'     => 'First real article',
+         'url'       => '/articles/first-real-article',
+         'published' => true,
+         'deleted'   => false
+      ],
+      [
+         'id'        => 3,
+         'title'     => 'Old article we do not want',
+         'url'       => '/articles/old-article-we-do-not-want',
+         'published' => false,
+         'deleted'   => true
+      ]
+      ];
+
+
    /**
-    * @Route("/articles", methods={"GET", "OPTIONS"})
+    * @Route("/articles", methods={"GET"})
     */
    public function getAllArticles(Request $request): Response
    {
-      header('Access-Control-Allow-Origin: *');
-      header('Access-Control-Request-Method: GET');
-      header('Access-Control-Allow-Headers: authorization, content-type');
-
-      // early escape for pre-flight CORS check
-      if($request->isMethod('OPTIONS')) {
-         return new Response();
-      }
-
-
       // todo extract all this to a JWT class
       $headers = getallheaders();
       $jwt_header = $headers['Authorization'] ?? null;
@@ -55,28 +70,28 @@ class ArticleController extends AbstractController
 
       // if we get here, the token is valid!  The username/password combination can be considered correct
       header('Content-type: application/json');
-      return new Response(json_encode([
-         [
-            'id'        => 1,
-            'title'     => 'Test article',
-            'url'       => '/articles/test-article',
-            'published' => false,
-            'deleted'   => false
-         ],
-         [
-            'id'        => 2,
-            'title'     => 'First real article',
-            'url'       => '/articles/first-real-article',
-            'published' => true,
-            'deleted'   => false
-         ],
-         [
-            'id'        => 3,
-            'title'     => 'Old article we do not want',
-            'url'       => '/articles/old-article-we-do-not-want',
-            'published' => false,
-            'deleted'   => true
-         ]
-      ]));
+      return new Response(json_encode(self::$articles));
+   }
+
+   /**
+    * @Route("/articles/{id}", methods={"GET"})
+    */
+   public function getArticle(int $id, Request $request): Response
+   {
+      // todo validate jwt token
+      // todo fetch specific article from database
+
+      // array keys are preserved, so this might not give us $arr[0] to use
+      $arr = array_filter(self::$articles, function($article) use ($id) {
+         return $article['id'] === $id;
+      });
+      // so reset is needed to fetch "the first item" from the array
+      $article = reset($arr);
+
+      // reset returns false if it doesn't work as we want it to
+      if($article === false) return new Response('Article not found', 404);
+
+      header('Content-type: application/json');
+      return new Response(json_encode($article));
    }
 }
