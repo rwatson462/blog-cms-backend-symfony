@@ -2,6 +2,9 @@
 
 namespace App\Controller;
 
+use App\Entity\BlogArticle;
+use App\Repository\BlogArticleRepository;
+use Doctrine\Persistence\ManagerRegistry;
 use RWA\JWT\Token;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -10,36 +13,10 @@ use Symfony\Component\Routing\Annotation\Route;
 
 class ArticleController extends AbstractController
 {
-   private static array $articles = [
-      [
-         'id'        => 1,
-         'title'     => 'Test article',
-         'url'       => '/articles/test-article',
-         'content'   => "#Test article\n\nThis is a test.  Repeat, _this is a *test*_",
-         'published' => false,
-         'deleted'   => false
-      ],
-      [
-         'id'        => 2,
-         'title'     => 'First real article',
-         'url'       => '/articles/first-real-article',
-         'published' => true,
-         'deleted'   => false
-      ],
-      [
-         'id'        => 3,
-         'title'     => 'Old article we do not want',
-         'url'       => '/articles/old-article-we-do-not-want',
-         'published' => false,
-         'deleted'   => true
-      ]
-      ];
-
-
    /**
     * @Route("/articles", methods={"GET"})
     */
-   public function getAllArticles(Request $request): Response
+   public function getAllArticles(BlogArticleRepository $repository): Response
    {
       // todo extract all this to a JWT class
       $headers = getallheaders();
@@ -70,27 +47,41 @@ class ArticleController extends AbstractController
       if(10 > $token->getValue('access-level')) return new Response('No access allowed');
 
       // if we get here, the token is valid!  The username/password combination can be considered correct
+
       header('Content-type: application/json');
-      return new Response(json_encode(self::$articles));
+      header('Cache-control: no-cache');
+      $articles = array_map( function($article) {
+         return [
+            'id' => $article->getId(),
+            'title' => $article->getTitle(),
+            'url' => $article->getSlug(),
+            'author' => $article->getAuthor(),
+            'published' => $article->getPublished(),
+            'deleted' => $article->getDeleted()
+         ];
+      }, $repository->findAll());
+      return new Response(json_encode($articles));
    }
 
    /**
     * @Route("/articles/{id}", methods={"GET"})
     */
-   public function getArticle(int $id, Request $request): Response
+   public function getArticle(int $id, BlogArticleRepository $repository): Response
    {
       // todo validate jwt token
-      // todo fetch specific article from database
+      $article = $repository->find($id);
 
-      // array keys are preserved, so this might not give us $arr[0] to use
-      $arr = array_filter(self::$articles, function($article) use ($id) {
-         return $article['id'] === $id;
-      });
-      // so reset is needed to fetch "the first item" from the array
-      $article = reset($arr);
+      if(!$article) return new Response('Article not found', 404);
 
-      // reset returns false if it doesn't work as we want it to
-      if($article === false) return new Response('Article not found', 404);
+      $article = [
+         'id' => $article->getId(),
+         'title' => $article->getTitle(),
+         'url' => $article->getSlug(),
+         'author' => $article->getAuthor(),
+         'content' => $article->getContent(),
+         'published' => $article->getPublished(),
+         'deleted' => $article->getDeleted()
+      ];
 
       header('Content-type: application/json');
       return new Response(json_encode($article));
@@ -100,30 +91,60 @@ class ArticleController extends AbstractController
    /**
     * @Route("/articles", methods={"POST"})
     */
-   public function createArticle(Request $request): Response
+   public function createArticle(Request $request, ManagerRegistry $doctrine): Response
    {
       // todo validate jwt token
       // todo save new article to database
 
       // we're creating an article
       // database::insert
-      $article = json_decode($request->getContent(),true);
+      $entityManager = $doctrine->getManager();
+
+      $article = json_decode($request->getContent(),true)['article'] ?? null;
+      $blog_article = new BlogArticle();
+      $blog_article->setTitle($article['title']);
+      $blog_article->setSlug($article['url']);
+      $blog_article->setContent($article['content']);
+      $blog_article->setAuthor('Roberto');
+      $blog_article->setPublished(false);
+      $blog_article->setDeleted(false);
+
+      // queue for saving
+      $entityManager->persist($blog_article);
+      // actually commit to database
+      $entityManager->flush();
+
+      // this apparently is now populated after saving
+      $id = $blog_article->getId();
 
       header('Content-type: application/json');
-      return new Response(json_encode(['result' => 'ok']));
+      return new Response(json_encode(['result' => 'ok', 'id' => $id]));
    }
 
    /**
     * @Route("/articles/{id}", methods={"PUT"})
     */
-   public function updateArticle(int $id, Request $request): Response
+   public function updateArticle(int $id, Request $request, BlogArticleRepository $repository, ManagerRegistry $doctrine): Response
    {
       // todo validate jwt token
       // todo update existing article in database
 
       // we're updating an existing article
       // database::update
-      $article = json_decode($request->getContent(),true);
+      $blog_article = $repository->find($id);
+
+      if(!$blog_article) return new Response('Article not found', 404);
+
+      $new_article = json_decode($request->getContent(),true)['article'] ?? null;
+
+      if(!$new_article) return new Response('No article data given', 404);
+
+      $blog_article->setSlug($new_article['url']);
+      $blog_article->setTitle($new_article['title']);
+      $blog_article->setContent($new_article['content']);
+
+      $doctrine->persist($blog_article);
+      $doctrine->flush();
 
       header('Content-type: application/json');
       return new Response(json_encode(['result' => 'ok']));

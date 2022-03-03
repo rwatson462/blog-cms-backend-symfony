@@ -9,7 +9,7 @@ return function (array $context) {
     // dodgy hack time, to allow API requests from external domains via javascript,
     // we need to send these headers
     header('Access-Control-Allow-Origin: *');
-    header('Access-Control-Request-Method: GET, POST, PUT');
+    header('Access-Control-Request-Method: PUT,POST,GET,OPTIONS');
     header('Access-Control-Allow-Headers: authorization, content-type');
 
     // No further processing required from an OPTIONS request
