@@ -45,6 +45,13 @@ become a problem, or if SHA256 itself becomes vulnerable like MD5 has before).
 `/articles` to fetch a list of all articles currently listed in the blog.  Requires signed JWT token
 that is validated in the same way as the login route (by re-signing).
 
+### CORS
+
+I have enabled Cross Origin Request Security throughout this app by automatically sending the
+required headers on each request from `src/index.php`.  I acknowledge that this is very silly in the real
+world, but I've done it because I run the Symfony back end on a different port on my localhost
+to the React front end, thus CORS was getting in my way.
+
 ## Boilerplate code
 
 > If anyone wants to see the code _I_ have written, please ignore these files
@@ -58,5 +65,4 @@ exhaustive:
 * symfont.lock
 * bin/console
 * config/*
-* public/index.php
 * src/Kernel.php
