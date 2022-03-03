@@ -15,6 +15,7 @@ class ArticleController extends AbstractController
          'id'        => 1,
          'title'     => 'Test article',
          'url'       => '/articles/test-article',
+         'content'   => "#Test article\n\nThis is a test.  Repeat, _this is a *test*_",
          'published' => false,
          'deleted'   => false
       ],
@@ -93,5 +94,38 @@ class ArticleController extends AbstractController
 
       header('Content-type: application/json');
       return new Response(json_encode($article));
+   }
+
+
+   /**
+    * @Route("/articles", methods={"POST"})
+    */
+   public function createArticle(Request $request): Response
+   {
+      // todo validate jwt token
+      // todo save new article to database
+
+      // we're creating an article
+      // database::insert
+      $article = json_decode($request->getContent(),true);
+
+      header('Content-type: application/json');
+      return new Response(json_encode(['result' => 'ok']));
+   }
+
+   /**
+    * @Route("/articles/{id}", methods={"PUT"})
+    */
+   public function updateArticle(int $id, Request $request): Response
+   {
+      // todo validate jwt token
+      // todo update existing article in database
+
+      // we're updating an existing article
+      // database::update
+      $article = json_decode($request->getContent(),true);
+
+      header('Content-type: application/json');
+      return new Response(json_encode(['result' => 'ok']));
    }
 }
