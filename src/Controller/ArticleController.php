@@ -122,7 +122,7 @@ class ArticleController extends AbstractController
    }
 
    /**
-    * @Route("/articles/{id}", methods={"PUT"})
+    * @Route("/articles/{id}", methods={"POST"})
     */
    public function updateArticle(int $id, Request $request, BlogArticleRepository $repository, ManagerRegistry $doctrine): Response
    {
@@ -143,8 +143,9 @@ class ArticleController extends AbstractController
       $blog_article->setTitle($new_article['title']);
       $blog_article->setContent($new_article['content']);
 
-      $doctrine->persist($blog_article);
-      $doctrine->flush();
+      $entityManager = $doctrine->getManager();
+      $entityManager->persist($blog_article);
+      $entityManager->flush();
 
       header('Content-type: application/json');
       return new Response(json_encode(['result' => 'ok']));
